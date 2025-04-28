@@ -1,6 +1,6 @@
 import requests
 
-class SparkAPI:
+class SparHistorykFetcher:
     def __init__(self, base_url):
         self.base_url = base_url
 
@@ -27,6 +27,25 @@ class SparkAPI:
         url += "/executors"
         response = requests.get(url)
         return self.parse_response(response)
+
+    def fetch_all_data(self, app_id, attempt_id=None):
+        """
+        Récupère les données des jobs, stages et executors, et les combine dans un JSON.
+        """
+        try:
+            job_data = self.fetch_job_data(app_id, attempt_id)
+            stage_data = self.fetch_stage_data(app_id, attempt_id)
+            executor_data = self.fetch_executor_data(app_id, attempt_id)
+
+            combined_data = {
+                "jobs": job_data,
+                "stages": stage_data,
+                "executors": executor_data
+            }
+
+            return combined_data
+        except requests.exceptions.RequestException as e:
+            raise RuntimeError(f"Erreur lors de la récupération des données : {e}")
 
     def parse_response(self, response):
         if response.status_code == 200:

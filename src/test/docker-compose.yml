@@ -14,7 +14,7 @@ services:
     command: >
       /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
     volumes:
-      - ./calculate_pi.py:/opt/spark-apps/calculate_pi.py
+      - ./jobs:/opt/spark-apps/jobs
       - ./spark-events:/tmp/spark-events
 
   spark-worker:
