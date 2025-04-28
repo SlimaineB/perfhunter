@@ -6,14 +6,28 @@ from config.settings import API_ENDPOINT
 st.title("PerfHunter - Spark Job Analyzer")
 
 application_id = st.text_input("Application ID")
-attempt_id = st.text_input("Attempt ID (optionnel)")
+attempt_id = st.text_input("Attempt ID (optionnel, 1-100)")
 
 if st.button("Générer les recommandations"):
     if application_id:
+        # Convertir attempt_id en int si renseigné et valide
+        attempt_id_param = None
+        if attempt_id.strip():
+            try:
+                attempt_id_int = int(attempt_id)
+                if 1 <= attempt_id_int <= 100:
+                    attempt_id_param = attempt_id_int
+                else:
+                    st.warning("Attempt ID doit être entre 1 et 100.")
+                    st.stop()
+            except ValueError:
+                st.warning("Attempt ID doit être un nombre entier.")
+                st.stop()
+
         spark_api = SparkAPI(API_ENDPOINT)
-        job_data = spark_api.fetch_job_data(application_id, attempt_id if attempt_id else None)
-        stage_data = spark_api.fetch_stage_data(application_id, attempt_id if attempt_id else None)
-        executor_data = spark_api.fetch_executor_data(application_id, attempt_id if attempt_id else None)
+        job_data = spark_api.fetch_job_data(application_id, attempt_id_param)
+        stage_data = spark_api.fetch_stage_data(application_id, attempt_id_param)
+        executor_data = spark_api.fetch_executor_data(application_id, attempt_id_param)
 
         data_skew_recommendations = generate_data_skew_recommendations(job_data)
         executor_memory_evaluation = evaluate_executor_memory(executor_data)
