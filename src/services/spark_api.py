@@ -1,14 +1,31 @@
-class SparkAPI:
-    def __init__(self, base_url, auth_token):
-        self.base_url = base_url
-        self.auth_token = auth_token
+import requests
 
-    def fetch_job_data(self, job_id):
-        url = f"{self.base_url}/api/v1/applications/{job_id}/jobs"
-        headers = {
-            "Authorization": f"Bearer {self.auth_token}"
-        }
-        response = requests.get(url, headers=headers)
+class SparkAPI:
+    def __init__(self, base_url):
+        self.base_url = base_url
+
+    def fetch_job_data(self, app_id, attempt_id=None):
+        url = f"{self.base_url}/api/v1/applications/{app_id}"
+        if attempt_id:
+            url += f"/{attempt_id}"
+        url += "/jobs"
+        response = requests.get(url)
+        return self.parse_response(response)
+
+    def fetch_stage_data(self, app_id, attempt_id=None):
+        url = f"{self.base_url}/api/v1/applications/{app_id}"
+        if attempt_id:
+            url += f"/{attempt_id}"
+        url += "/stages"
+        response = requests.get(url)
+        return self.parse_response(response)
+
+    def fetch_executor_data(self, app_id, attempt_id=None):
+        url = f"{self.base_url}/api/v1/applications/{app_id}"
+        if attempt_id:
+            url += f"/{attempt_id}"
+        url += "/executors"
+        response = requests.get(url)
         return self.parse_response(response)
 
     def parse_response(self, response):

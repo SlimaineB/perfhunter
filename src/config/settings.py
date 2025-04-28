@@ -1,5 +1,4 @@
-API_ENDPOINT = "http://spark-history-server/api/v1"
-AUTH_TOKEN = "your_auth_token_here"
+API_ENDPOINT = "http://localhost:18080"
 TIMEOUT = 30  # seconds
 
 # Constants for recommendation thresholds
