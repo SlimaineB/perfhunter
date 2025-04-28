@@ -1,0 +1,49 @@
+version: '3.8'
+services:
+  spark-master:
+    image: apache/spark:latest
+    container_name: spark-master
+    environment:
+      - SPARK_MASTER_HOST=spark-master
+      - SPARK_MASTER_PORT=7077
+      - SPARK_EVENTLOG_ENABLED=true
+      - SPARK_EVENTLOG_DIR=file:/tmp/spark-events
+    ports:
+      - "7077:7077"
+      - "8080:8080"
+    command: >
+      /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+    volumes:
+      - ./calculate_pi.py:/opt/spark-apps/calculate_pi.py
+      - ./spark-events:/tmp/spark-events
+
+  spark-worker:
+    image: apache/spark:latest
+    container_name: spark-worker
+    environment:
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_EVENTLOG_ENABLED=true
+      - SPARK_EVENTLOG_DIR=file:/tmp/spark-events
+    depends_on:
+      - spark-master
+    ports:
+      - "8081:8081"
+    command: >
+      /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+
+  spark-history-server:
+    image: apache/spark:latest
+    container_name: spark-history-server
+    environment:
+      - SPARK_HISTORY_OPTS=-Dspark.history.fs.logDirectory=/tmp/spark-events
+      - SPARK_EVENTLOG_ENABLED=true
+      - SPARK_EVENTLOG_DIR=file:/tmp/spark-events
+    volumes:
+      - ./spark-events:/tmp/spark-events
+    depends_on:
+      - spark-master
+    ports:
+      - "18080:18080"
+    command: >
+      /opt/spark/bin/spark-class org.apache.spark.deploy.history.HistoryServer
+
