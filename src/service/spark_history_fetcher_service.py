@@ -28,19 +28,34 @@ class SparHistorykFetcherService:
         response = requests.get(url)
         return self.parse_response(response)
 
+    def fetch_config_data(self, app_id, attempt_id=None):
+        """
+        Fetches the Spark configuration (environment) for the given application.
+        """
+        url = f"{self.base_url}/api/v1/applications/{app_id}"
+        if attempt_id:
+            url += f"/{attempt_id}"
+        url += "/environment"
+        response = requests.get(url)
+        return self.parse_response(response)
+
     def fetch_all_data(self, app_id, attempt_id=None):
         """
-        Récupère les données des jobs, stages et executors, et les combine dans un JSON.
+        Récupère les données des jobs, stages, executors et config, et les combine dans un JSON.
         """
         try:
             job_data = self.fetch_job_data(app_id, attempt_id)
             stage_data = self.fetch_stage_data(app_id, attempt_id)
             executor_data = self.fetch_executor_data(app_id, attempt_id)
+            config_env = self.fetch_config_data(app_id, attempt_id)
+            # sparkProperties is a list of [key, value] pairs
+            config_dict = dict(config_env.get("sparkProperties", [])) if config_env else {}
 
             combined_data = {
                 "jobs": job_data,
                 "stages": stage_data,
-                "executors": executor_data
+                "executors": executor_data,
+                "config": config_dict
             }
 
             return combined_data

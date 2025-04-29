@@ -22,6 +22,7 @@ i18n = {
         "debug_job": "Debug: job_data",
         "debug_stage": "Debug: stage_data",
         "debug_executor": "Debug: executor_data",
+        "debug_config": "Debug: config_data",
     },
     "Français": {
         "title": "PerfHunter - Analyseur de jobs Spark",
@@ -46,5 +47,6 @@ i18n = {
         "debug_job": "Debug: job_data",
         "debug_stage": "Debug: stage_data",
         "debug_executor": "Debug: executor_data",
+        "debug_config": "Debug: config_data",
     }
 }

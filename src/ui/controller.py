@@ -103,6 +103,8 @@ def home_tab(T):
             st.json(history_data.get("stages", []))
             st.subheader(T["debug_executor"])
             st.json(history_data.get("executors", []))
+            st.subheader(T["debug_config"])
+            st.json(history_data.get("config", []))
         else:
             st.warning(T["app_id_warning"])
 
