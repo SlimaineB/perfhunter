@@ -52,3 +52,25 @@ class SparHistorykFetcher:
             return response.json()
         else:
             response.raise_for_status()
+
+    def list_applications(self, status=None, min_date=None, max_date=None, min_end_date=None, max_end_date=None, limit=None):
+        """
+        Récupère la liste de toutes les applications Spark connues par le Spark History Server, avec filtres optionnels.
+        """
+        params = {}
+        if status:
+            params["status"] = status
+        if min_date:
+            params["minDate"] = min_date
+        if max_date:
+            params["maxDate"] = max_date
+        if min_end_date:
+            params["minEndDate"] = min_end_date
+        if max_end_date:
+            params["maxEndDate"] = max_end_date
+        if limit:
+            params["limit"] = limit
+
+        url = f"{self.base_url}/api/v1/applications"
+        response = requests.get(url, params=params)
+        return self.parse_response(response)
