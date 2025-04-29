@@ -1,5 +1,6 @@
 import streamlit as st
 from service.spark_history_fetcher_service import SparHistorykFetcherService
+from service.spark_optimal_config_generator_service import SparkOptimalConfigGeneratorService
 from service.heuristic_service import HeuristicsService  
 from config.settings import API_ENDPOINT
 from config.i18n import i18n
@@ -81,6 +82,12 @@ def home_tab(T):
 
             # Fetch Spark application data
             history_data = spark_api.fetch_all_data(application_id, attempt_id_param)
+
+            # Génération de la configuration optimale
+            config_generator = SparkOptimalConfigGeneratorService()
+            optimal_config = config_generator.suggest_config(history_data)
+            st.subheader("💡 Configuration Spark optimale suggérée")
+            st.json(optimal_config)
 
             # Load and run heuristics
             heuristics = HeuristicsService().load_heuristics()
