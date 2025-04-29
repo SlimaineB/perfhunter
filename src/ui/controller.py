@@ -1,68 +1,22 @@
 import streamlit as st
-from services.spark_history_fetcher import SparHistorykFetcher
+from service.spark_history_fetcher_service import SparHistorykFetcherService
+from service.heuristic_service import HeuristicsService  
 from config.settings import API_ENDPOINT
+from config.i18n import i18n
 
-def run_ui():
-    # i18n
-    LANG = st.sidebar.selectbox("Language / Langue", options=["English", "Français"], index=0)
-    i18n = {
-        "English": {
-            "title": "PerfHunter - Spark Job Analyzer",
-            "search_expander": "🔍 Search for a Spark application",
-            "filter_label": "Filter Spark applications by date and status:",
-            "start_date_min": "Start date (min)",
-            "start_date_max": "Start date (max)",
-            "end_date_min": "End date (min)",
-            "end_date_max": "End date (max)",
-            "status": "Status",
-            "status_options": ["", "completed", "running"],
-            "limit": "Max number of applications",
-            "search": "Search",
-            "select_app": "Select an application",
-            "select_attempt": "Select an attempt",
-            "attempt_duration": "duration",
-            "manual_app_id": "Application ID",
-            "manual_attempt_id": "Attempt ID (optional, 1-100)",
-            "generate": "Generate recommendations",
-            "attempt_id_warning": "Attempt ID must be between 1 and 100.",
-            "attempt_id_int_warning": "Attempt ID must be an integer.",
-            "app_id_warning": "Please provide an Application ID.",
-            "recommendations": "Recommendations",
-            "debug_job": "Debug: job_data",
-            "debug_stage": "Debug: stage_data",
-            "debug_executor": "Debug: executor_data",
-        },
-        "Français": {
-            "title": "PerfHunter - Analyseur de jobs Spark",
-            "search_expander": "🔍 Rechercher une application Spark",
-            "filter_label": "Filtrer les applications Spark par date et statut :",
-            "start_date_min": "Date de début min",
-            "start_date_max": "Date de début max",
-            "end_date_min": "Date de fin min",
-            "end_date_max": "Date de fin max",
-            "status": "Statut",
-            "status_options": ["", "completed", "running"],
-            "limit": "Nombre max d'applications",
-            "search": "Rechercher",
-            "select_app": "Sélectionnez une application",
-            "select_attempt": "Sélectionnez un attempt",
-            "attempt_duration": "durée",
-            "manual_app_id": "Application ID",
-            "manual_attempt_id": "Attempt ID (optionnel, 1-100)",
-            "generate": "Générer les recommandations",
-            "attempt_id_warning": "Attempt ID doit être entre 1 et 100.",
-            "attempt_id_int_warning": "Attempt ID doit être un nombre entier.",
-            "app_id_warning": "Veuillez renseigner l'Application ID.",
-            "recommendations": "Recommandations",
-            "debug_job": "Debug: job_data",
-            "debug_stage": "Debug: stage_data",
-            "debug_executor": "Debug: executor_data",
-        }
-    }
-    T = i18n[LANG]
+st.set_page_config(page_title="PerfHunter", page_icon=":bar_chart:")
 
+# Initialize Spark API service once for the session
+@st.cache_resource
+def get_spark_api():
+    return SparHistorykFetcherService(API_ENDPOINT)
+
+def home_tab(T):
     st.title(T["title"])
 
+    spark_api = get_spark_api()
+
+    # Application search/filter UI
     with st.expander(T["search_expander"]):
         st.write(T["filter_label"])
         col1, col2 = st.columns(2)
@@ -76,8 +30,8 @@ def run_ui():
         def date_to_str(d):
             return d.strftime("%Y-%m-%d") if d else None
 
+        # Fetch applications with or without filters
         if st.button(T["search"]):
-            spark_api = SparHistorykFetcher(API_ENDPOINT)
             applications = spark_api.list_applications(
                 status=status if status else None,
                 min_date=date_to_str(min_date),
@@ -85,13 +39,14 @@ def run_ui():
                 limit=limit
             )
         else:
-            spark_api = SparHistorykFetcher(API_ENDPOINT)
             applications = spark_api.list_applications(limit=limit)
 
+        # Application and attempt selection
         app_options = [
             f"{app['id']} - {app['name']}" for app in applications
         ]
         selected_app = st.selectbox(T["select_app"], app_options)
+        selected_app_id, selected_attempt_id = None, None
         if selected_app:
             selected_app_id = selected_app.split(" - ")[0]
             app_obj = next(app for app in applications if app["id"] == selected_app_id)
@@ -100,14 +55,15 @@ def run_ui():
                 f"{i+1}: {a['startTime']} ({T['attempt_duration']}: {a['duration']} ms)" for i, a in enumerate(attempts)
             ]
             selected_attempt = st.selectbox(T["select_attempt"], attempt_options)
-            selected_attempt_id = None
             if selected_attempt:
                 idx = int(selected_attempt.split(":")[0]) - 1
                 selected_attempt_id = idx + 1
 
-    application_id = st.text_input(T["manual_app_id"], value=selected_app_id if 'selected_app_id' in locals() else "")
+    # Manual override fields
+    application_id = st.text_input(T["manual_app_id"], value=selected_app_id if selected_app_id else "")
     attempt_id = st.text_input(T["manual_attempt_id"], value="")
 
+    # Generate recommendations on button click
     if st.button(T["generate"]):
         if application_id:
             attempt_id_param = None
@@ -123,18 +79,17 @@ def run_ui():
                     st.warning(T["attempt_id_int_warning"])
                     st.stop()
 
-            spark_api = SparHistorykFetcher(API_ENDPOINT)
+            # Fetch Spark application data
             history_data = spark_api.fetch_all_data(application_id, attempt_id_param)
 
-            # Import heuristics loader only when needed
-            from services.heuristic_service import load_heuristics
-            heuristics = load_heuristics()
-
+            # Load and run heuristics
+            heuristics = HeuristicsService().load_heuristics()
             for heuristic in heuristics:
                 st.subheader(f"{T['recommendations']} : {heuristic.__name__}")
                 recommendations = heuristic.evaluate(history_data)
                 st.write(recommendations)
 
+            # Debug sections
             st.subheader(T["debug_job"])
             st.json(history_data.get("jobs", []))
             st.subheader(T["debug_stage"])
@@ -143,3 +98,19 @@ def run_ui():
             st.json(history_data.get("executors", []))
         else:
             st.warning(T["app_id_warning"])
+
+def configuration_tab(T):
+    st.title("Configuration")
+    st.info("Add your configuration options here (API endpoint, heuristics, etc).")
+    st.write(f"Current API endpoint: `{API_ENDPOINT}`")
+    # Add more configuration fields as needed
+
+def run_ui():
+    LANG = st.sidebar.selectbox("Language / Langue", options=["English", "Français"], index=0)
+    T = i18n[LANG]
+
+    tabs = st.tabs(["Home", "Configuration"])
+    with tabs[0]:
+        home_tab(T)
+    with tabs[1]:
+        configuration_tab(T)
