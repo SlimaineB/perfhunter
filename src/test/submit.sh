@@ -1,12 +1,16 @@
-docker exec -it spark-master /opt/spark/bin/spark-submit \
+docker exec -it spark-master spark-submit \
   --master spark://spark-master:7077 \
   /opt/spark-apps/jobs/calculate_pi.py
 
 
-docker exec -it spark-master /opt/spark/bin/spark-submit \
+docker exec -it spark-master spark-submit \
   --master spark://spark-master:7077 \
   /opt/spark-apps/jobs/bad_code.py
 
-docker exec -it spark-master /opt/spark/bin/spark-submit \
+docker exec -it spark-master spark-submit \
+  --master spark://spark-master:7077 \
+  /opt/spark-apps/jobs/data_skew_s3.py
+
+docker exec -it spark-master spark-submit \
   --master spark://spark-master:7077 \
   /opt/spark-apps/jobs/generate_skewed_data.py

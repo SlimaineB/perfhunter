@@ -118,6 +118,8 @@ def run_ui():
     LANG = st.sidebar.selectbox("Language / Langue", options=["English", "Français"], index=0)
     T = i18n[LANG]
 
+    history_server_endpoint = st.sidebar.text_input(T["history_server_endpoint"], value=API_ENDPOINT)
+
     tabs = st.tabs(["Home", "Configuration"])
     with tabs[0]:
         home_tab(T)
