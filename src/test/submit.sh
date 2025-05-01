@@ -1,3 +1,6 @@
+mkdir spark-events && chmod -R 777 spark-events
+mkdir minio-data && chmod -R 777 spark-events
+
 docker exec -it spark-master spark-submit \
   --master spark://spark-master:7077 \
   /opt/spark-apps/jobs/calculate_pi.py
