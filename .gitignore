@@ -65,3 +65,6 @@ coverage.xml
 *.sqlite3
 *.env.local
 *.env.*.local
+
+src/test/minio-data/
+src/test/spark-events/
