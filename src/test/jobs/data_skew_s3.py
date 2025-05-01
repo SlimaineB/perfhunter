@@ -18,9 +18,9 @@ skewed_path = "s3a://default-bucket/skewed_data/"
 balanced_path = "s3a://default-bucket/balanced_data/"
 
 # Nombre de lignes et colonnes
-#num_rows = 10_000  # Ajustez pour tester différentes tailles
-num_rows = 1000  # Ajustez pour tester différentes tailles
-num_columns = 5
+num_rows = 1000_000  # Ajustez pour tester différentes tailles
+#num_rows = 1000  # Ajustez pour tester différentes tailles
+num_columns = 20
 
 # Génération des données déséquilibrées (Skewed Data)
 def generate_skewed_data(num_rows, num_columns):

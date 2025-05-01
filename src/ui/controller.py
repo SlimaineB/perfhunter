@@ -1,9 +1,11 @@
 import streamlit as st
+import pandas as pd
 from service.spark_history_fetcher_service import SparHistorykFetcherService
 from service.spark_optimal_config_generator_service import SparkOptimalConfigGeneratorService
 from service.heuristic_service import HeuristicsService  
 from config.settings import API_ENDPOINT
 from config.i18n import i18n
+
 
 st.set_page_config(page_title="PerfHunter", page_icon=":bar_chart:")
 
@@ -64,6 +66,14 @@ def home_tab(T):
     application_id = st.text_input(T["manual_app_id"], value=selected_app_id if selected_app_id else "")
     attempt_id = st.text_input(T["manual_attempt_id"], value="")
 
+
+    # Load available heuristics
+    heuristics = HeuristicsService().load_heuristics()
+
+    df = pd.DataFrame(data=[{"heuristic":heuristic.__name__, "enabled": True} for heuristic in heuristics], columns=["heuristic","enabled"])
+    st.subheader(f"{T['heuristics_select']} ")
+    edited_df = st.data_editor(df)
+
     # Generate recommendations on button click
     if st.button(T["generate"]):
         if application_id:
@@ -82,19 +92,19 @@ def home_tab(T):
 
             # Fetch Spark application data
             history_data = spark_api.fetch_all_data(application_id, attempt_id_param)
+            for heuristic in heuristics : 
+                if edited_df.loc[edited_df["heuristic"] == heuristic.__name__, "enabled"].values[0]:
+                    st.subheader(f"{T['recommendations']} : {heuristic.__name__}")
+                    recommendations = heuristic.evaluate(history_data)
+                    st.write(recommendations)
 
-            # Génération de la configuration optimale
+
+           # Génération de la configuration optimale
             config_generator = SparkOptimalConfigGeneratorService()
             optimal_config = config_generator.suggest_config(history_data)
             st.subheader("💡 Configuration Spark optimale suggérée")
             st.json(optimal_config)
 
-            # Load and run heuristics
-            heuristics = HeuristicsService().load_heuristics()
-            for heuristic in heuristics:
-                st.subheader(f"{T['recommendations']} : {heuristic.__name__}")
-                recommendations = heuristic.evaluate(history_data)
-                st.write(recommendations)
 
             # Debug sections
             st.subheader(T["debug_job"])
