@@ -74,7 +74,7 @@ def home_tab(T):
 
     df = pd.DataFrame(data=[{"heuristic":heuristic.__name__, "enabled": True} for heuristic in heuristics], columns=["heuristic","enabled"])
     st.sidebar.subheader(f"{T['heuristics_select']} ")
-    edited_df = st.sidebar.data_editor(df)
+    edited_df = st.sidebar.data_editor(df,hide_index=True)
 
 
 
@@ -104,12 +104,12 @@ def home_tab(T):
                         if show_only_issues:
                             recommendations = recommendations[recommendations["criticity"] != "None"]
 
-                if not recommendations.empty:
-                    st.subheader(f"{T['recommendations']} : {heuristic.__name__}")
-                    st.dataframe(recommendations)
-                else:
-                    st.subheader(f"{T['recommendations']} : {heuristic.__name__}")
-                    st.write("✅ No issues detected. Everything is within expected thresholds.")
+                    if not recommendations.empty:
+                        st.subheader(f"{T['recommendations']} : {heuristic.__name__}")
+                        st.dataframe(recommendations)
+                    else:
+                        st.subheader(f"{T['recommendations']} : {heuristic.__name__}")
+                        st.write("✅ No issues detected. Everything is within expected thresholds.")
 
            # Génération de la configuration optimale
             config_generator = SparkOptimalConfigGeneratorService()
