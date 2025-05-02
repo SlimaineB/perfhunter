@@ -66,16 +66,21 @@ def home_tab(T):
     application_id = st.text_input(T["manual_app_id"], value=selected_app_id if selected_app_id else "")
     attempt_id = st.text_input(T["manual_attempt_id"], value="")
 
-
+    # Toggle to filter out "None" criticity rows    
+    show_only_issues = st.sidebar.checkbox("Show only detected issues", value=True)
+    
     # Load available heuristics
     heuristics = HeuristicsService().load_heuristics()
 
     df = pd.DataFrame(data=[{"heuristic":heuristic.__name__, "enabled": True} for heuristic in heuristics], columns=["heuristic","enabled"])
-    st.subheader(f"{T['heuristics_select']} ")
-    edited_df = st.data_editor(df)
+    st.sidebar.subheader(f"{T['heuristics_select']} ")
+    edited_df = st.sidebar.data_editor(df)
+
+
 
     # Generate recommendations on button click
     if st.button(T["generate"]):
+
         if application_id:
             attempt_id_param = None
             if attempt_id.strip():
@@ -94,10 +99,17 @@ def home_tab(T):
             history_data = spark_api.fetch_all_data(application_id, attempt_id_param)
             for heuristic in heuristics : 
                 if edited_df.loc[edited_df["heuristic"] == heuristic.__name__, "enabled"].values[0]:
-                    st.subheader(f"{T['recommendations']} : {heuristic.__name__}")
                     recommendations = heuristic.evaluate(history_data)
-                    st.write(recommendations)
+                    if isinstance(recommendations, pd.DataFrame) and not recommendations.empty:
+                        if show_only_issues:
+                            recommendations = recommendations[recommendations["criticity"] != "None"]
 
+                if not recommendations.empty:
+                    st.subheader(f"{T['recommendations']} : {heuristic.__name__}")
+                    st.dataframe(recommendations)
+                else:
+                    st.subheader(f"{T['recommendations']} : {heuristic.__name__}")
+                    st.write("✅ No issues detected. Everything is within expected thresholds.")
 
            # Génération de la configuration optimale
             config_generator = SparkOptimalConfigGeneratorService()
