@@ -1,7 +1,9 @@
-from config.config import THRESHOLDS
+import pandas as pd
 import numpy as np
+from config.config import THRESHOLDS
+from heuristics.base_heuristic import BaseHeuristic, Criticity
 
-class ExecutorsHeuristic:
+class ExecutorsHeuristic(BaseHeuristic):
     """
     Heuristic based on metrics for a Spark app's executors.
     Evaluates the distribution (min, 25p, median, 75p, max) of key executor metrics.
@@ -11,8 +13,16 @@ class ExecutorsHeuristic:
     @staticmethod
     def evaluate(all_data):
         executors = all_data.get("executors", [])
+        checks = []
+
         if not executors:
-            return ["No executors found in data."]
+            return pd.DataFrame([{
+                "category": "Executors",
+                "expected": "Executors present",
+                "current": "None",
+                "description": "No executors found in data.",
+                "criticity": Criticity.HIGH.value
+            }])
 
         # Helper to extract a list of values for a given key path
         def extract_metric(executors, *keys):
@@ -36,22 +46,22 @@ class ExecutorsHeuristic:
             }
 
         # Compute max/median ratio and severity
-        def severity_of_distribution(dist, ignore_max_less_than, thresholds):
+        def get_criticity(dist, ignore_max_less_than, thresholds):
             if dist["max"] < ignore_max_less_than:
-                return "NONE"
+                return Criticity.NONE
             if dist["median"] == 0:
-                return "CRITICAL"
+                return Criticity.CRITICAL
             ratio = dist["max"] / dist["median"]
             if ratio >= thresholds["critical"]:
-                return "CRITICAL"
+                return Criticity.CRITICAL
             elif ratio >= thresholds["severe"]:
-                return "SEVERE"
+                return Criticity.SEVERE
             elif ratio >= thresholds["moderate"]:
-                return "MODERATE"
+                return Criticity.MODERATE
             elif ratio >= thresholds["low"]:
-                return "LOW"
+                return Criticity.LOW
             else:
-                return "NONE"
+                return Criticity.NONE
 
         # Thresholds (can be customized in config)
         ratio_thresholds = THRESHOLDS.get("executors_max_to_median_ratio", {
@@ -60,17 +70,14 @@ class ExecutorsHeuristic:
         ignore_max_bytes = THRESHOLDS.get("executors_ignore_max_bytes", 100 * 1024 * 1024)
         ignore_max_millis = THRESHOLDS.get("executors_ignore_max_millis", 5 * 60 * 1000)
 
-        # Metrics to analyze: (label, extraction keys, ignore threshold)
+        # Metrics to analyze: (category, label, extraction keys, ignore threshold)
         metrics = [
-            ("storage memory used", ["memoryUsed"], ignore_max_bytes),
-            ("task time", ["totalDuration"], ignore_max_millis),
-            ("input bytes", ["totalInputBytes"], ignore_max_bytes),
-            ("shuffle read bytes", ["totalShuffleRead"], ignore_max_bytes),
-            ("shuffle write bytes", ["totalShuffleWrite"], ignore_max_bytes),
+            ("Memory", "Storage Memory Used", ["memoryUsed"], ignore_max_bytes),
+            ("Performance", "Task Time", ["totalDuration"], ignore_max_millis),
+            ("IO", "Input Bytes", ["totalInputBytes"], ignore_max_bytes),
+            ("IO", "Shuffle Read Bytes", ["totalShuffleRead"], ignore_max_bytes),
+            ("IO", "Shuffle Write Bytes", ["totalShuffleWrite"], ignore_max_bytes),
         ]
-
-        details = []
-        severities = []
 
         # Total memory allocated/used
         total_storage_memory_allocated = sum(ex.get("maxMemory", 0) for ex in executors)
@@ -80,26 +87,27 @@ class ExecutorsHeuristic:
             if total_storage_memory_allocated else 0
         )
 
-        details.append(f"Total executor storage memory allocated: {total_storage_memory_allocated} bytes")
-        details.append(f"Total executor storage memory used: {total_storage_memory_used} bytes")
-        details.append(f"Executor storage memory utilization rate: {storage_memory_utilization_rate:.3f}")
+        # Adding storage memory utilization check
+        ExecutorsHeuristic.add_check(
+            checks, "Memory", "Usage <= Allocated",
+            f"{total_storage_memory_used} / {total_storage_memory_allocated} bytes",
+            "Executor storage memory utilization rate.",
+            Criticity.MODERATE if storage_memory_utilization_rate > 0.75 else Criticity.NONE
+        )
 
-        for label, keys, ignore_max in metrics:
+        for category, label, keys, ignore_max in metrics:
             values = extract_metric(executors, *keys)
             dist = distribution(values)
-            sev = severity_of_distribution(dist, ignore_max, ratio_thresholds)
-            severities.append(sev)
-            details.append(
-                f"{label.title()} distribution: min={dist['min']}, p25={dist['p25']}, median={dist['median']}, "
-                f"p75={dist['p75']}, max={dist['max']} (max/median ratio={dist['max'] / dist['median'] if dist['median'] else 'inf'}, severity={sev})"
+            criticity = get_criticity(dist, ignore_max, ratio_thresholds)
+
+            ExecutorsHeuristic.add_check(
+                checks, category, f"max <= {ignore_max}", 
+                f"min={dist['min']}, p25={dist['p25']}, median={dist['median']}, p75={dist['p75']}, max={dist['max']}",
+                f"{label}: Max-to-median ratio exceeds thresholds.", criticity
             )
 
-        # Overall severity is the worst one
-        severity_order = ["NONE", "LOW", "MODERATE", "SEVERE", "CRITICAL"]
-        overall_severity = max(severities, key=lambda s: severity_order.index(s))
-
-        summary = [f"ExecutorsHeuristic severity: {overall_severity}"] + details
-        return summary
+        return pd.DataFrame(checks)
 
 # Example usage:
-# result = ExecutorsHeuristic.evaluate(all_data)
+# df = ExecutorsHeuristic.evaluate(all_data)
+# print(df)

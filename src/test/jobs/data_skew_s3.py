@@ -11,6 +11,14 @@ spark = SparkSession.builder \
     .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem") \
     .config("spark.eventLog.enabled", "true") \
     .config("spark.eventLog.dir", "file:/tmp/spark-events") \
+    .config("spark.driver.cores", "2") \
+    .config("spark.executor.cores", "2") \
+    .config("spark.executor.instances", "3") \
+    .config("spark.cores.max", "6") \
+    .config("spark.dynamicAllocation.enabled", "false") \
+    .config("spark.dynamicAllocation.initialExecutors", "3") \
+    .config("spark.dynamicAllocation.minExecutors", "3") \
+    .config("spark.dynamicAllocation.maxExecutors", "3") \
     .getOrCreate()
 
 # Chemin vers le bucket S3
