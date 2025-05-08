@@ -98,6 +98,19 @@ services:
       mc mb myminio/default-bucket &&
       echo 'Bucket default-bucket created successfully.'"
 
+  sparklint:
+    image: roboxue/sparklint
+    container_name: sparklint
+    depends_on:
+      - spark-history-server
+    ports:
+      - "23763:23763"
+    volumes:
+      - ./spark-events:/tmp/spark-events      
+    command: >
+      --historyServer http://spark-history-server:18080/
+
+
 networks:
   default:
     driver: bridge

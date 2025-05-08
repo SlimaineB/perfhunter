@@ -1,8 +1,18 @@
 import requests
 
-class SparHistorykFetcherService:
+class HistoryServerRestApiFetcher:
     def __init__(self, base_url):
         self.base_url = base_url
+
+
+    def fetch_app_data(self, app_id, attempt_id=None):
+        url = f"{self.base_url}/api/v1/applications/{app_id}"
+        if attempt_id:
+            url += f"/{attempt_id}"
+        response = requests.get(url)
+        return self.parse_response(response)
+
+
 
     def fetch_job_data(self, app_id, attempt_id=None):
         url = f"{self.base_url}/api/v1/applications/{app_id}"
@@ -44,6 +54,7 @@ class SparHistorykFetcherService:
         Récupère les données des jobs, stages, executors et config, et les combine dans un JSON.
         """
         try:
+            app_data = self.fetch_app_data(app_id, attempt_id)
             job_data = self.fetch_job_data(app_id, attempt_id)
             stage_data = self.fetch_stage_data(app_id, attempt_id)
             executor_data = self.fetch_executor_data(app_id, attempt_id)
@@ -52,6 +63,7 @@ class SparHistorykFetcherService:
             config_dict = dict(config_env.get("sparkProperties", [])) if config_env else {}
 
             combined_data = {
+                "app": app_data,
                 "jobs": job_data,
                 "stages": stage_data,
                 "executors": executor_data,
@@ -89,3 +101,4 @@ class SparHistorykFetcherService:
         url = f"{self.base_url}/api/v1/applications"
         response = requests.get(url, params=params)
         return self.parse_response(response)
+

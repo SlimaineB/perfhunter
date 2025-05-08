@@ -3,6 +3,8 @@ i18n = {
         "title": "PerfHunter - Spark Job Analyzer",
         "search_expander": "🔍 Search for a Spark application",
         "filter_label": "Filter Spark applications by date and status:",
+        "filter_heuristics_expander": "🔍 Filter Heuristics",
+        "filter_heuristics_label": "Filter heuristics to apply:",
         "start_date_min": "Start date (min)",
         "start_date_max": "Start date (max)",
         "status": "Status",
@@ -25,11 +27,14 @@ i18n = {
         "debug_config": "Debug: config_data",
         "history_server_endpoint": "History Server Endpoint",
         "heuristics_select": "Select Heuristics to apply",
+        "summary": "Summary Informations",
     },
     "Français": {
         "title": "PerfHunter - Analyseur de jobs Spark",
         "search_expander": "🔍 Rechercher une application Spark",
         "filter_label": "Filtrer les applications Spark par date et statut :",
+        "filter_heuristics_expander": "🔍 Filtrer les Heuristiques",
+        "filter_heuristics_label": "Filtrer les heuristiques à appliquer :",
         "start_date_min": "Date de début min",
         "start_date_max": "Date de début max",
         "status": "Statut",
@@ -52,5 +57,6 @@ i18n = {
         "debug_config": "Debug: config_data",
         "history_server_endpoint": "History Server Endpoint",
         "heuristics_select": "Selectionnez les Heuristiques à appliquer",
+        "summary": "Résumé du jobs",
     }
 }

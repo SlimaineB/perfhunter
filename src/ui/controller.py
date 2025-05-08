@@ -1,27 +1,31 @@
 import streamlit as st
 import pandas as pd
-from service.spark_history_fetcher_service import SparHistorykFetcherService
+from service.metrics_service import MetricsService
 from service.spark_optimal_config_generator_service import SparkOptimalConfigGeneratorService
 from service.heuristic_service import HeuristicsService  
 from config.settings import API_ENDPOINT
 from config.i18n import i18n
 
-
-st.set_page_config(page_title="PerfHunter", page_icon=":bar_chart:")
+#Page size to all available
+st.set_page_config(page_title="PerfHunter", page_icon=":bar_chart:", layout="wide")
 
 # Initialize Spark API service once for the session
-@st.cache_resource
-def get_spark_api():
-    return SparHistorykFetcherService(API_ENDPOINT)
+#@st.cache_resource
+def get_metrics_service():
+    return MetricsService(API_ENDPOINT)
+
 
 def home_tab(T):
     st.title(T["title"])
 
-    spark_api = get_spark_api()
+    metrics_service = get_metrics_service()
 
     # Application search/filter UI
-    with st.expander(T["search_expander"]):
-        st.write(T["filter_label"])
+    history_server_endpoint = st.sidebar.text_input(T["history_server_endpoint"], value=API_ENDPOINT)
+
+    # Application search/filter UI
+    with st.sidebar.expander(T["search_expander"]):
+        st.subheader(f"{T['filter_label']} ")
         col1, col2 = st.columns(2)
         with col1:
             min_date = st.date_input(T["start_date_min"], value=None)
@@ -35,14 +39,14 @@ def home_tab(T):
 
         # Fetch applications with or without filters
         if st.button(T["search"]):
-            applications = spark_api.list_applications(
+            applications = metrics_service.list_applications(
                 status=status if status else None,
                 min_date=date_to_str(min_date),
                 max_date=date_to_str(max_date),
                 limit=limit
             )
         else:
-            applications = spark_api.list_applications(limit=limit)
+            applications = metrics_service.list_applications(limit=limit)
 
         # Application and attempt selection
         app_options = [
@@ -63,23 +67,24 @@ def home_tab(T):
                 selected_attempt_id = idx + 1
 
     # Manual override fields
-    application_id = st.text_input(T["manual_app_id"], value=selected_app_id if selected_app_id else "")
-    attempt_id = st.text_input(T["manual_attempt_id"], value="")
+    application_id = st.sidebar.text_input(T["manual_app_id"], value=selected_app_id if selected_app_id else "")
+    attempt_id = st.sidebar.text_input(T["manual_attempt_id"], value="")
+
+
+    # Load available heuristics
+    heuristics = HeuristicsService().load_heuristics()
+
+    with st.sidebar.expander(T["filter_heuristics_expander"], expanded=False):
+        df = pd.DataFrame(data=[{"heuristic":heuristic.__name__, "enabled": True} for heuristic in heuristics], columns=["heuristic","enabled"])
+        st.subheader(f"{T['heuristics_select']} ")
+        edited_df = st.data_editor(df,hide_index=True)
 
     # Toggle to filter out "None" criticity rows    
     show_only_issues = st.sidebar.checkbox("Show only detected issues", value=True)
     
-    # Load available heuristics
-    heuristics = HeuristicsService().load_heuristics()
-
-    df = pd.DataFrame(data=[{"heuristic":heuristic.__name__, "enabled": True} for heuristic in heuristics], columns=["heuristic","enabled"])
-    st.sidebar.subheader(f"{T['heuristics_select']} ")
-    edited_df = st.sidebar.data_editor(df,hide_index=True)
-
-
 
     # Generate recommendations on button click
-    if st.button(T["generate"]):
+    if st.sidebar.button(T["generate"]):
 
         if application_id:
             attempt_id_param = None
@@ -96,7 +101,26 @@ def home_tab(T):
                     st.stop()
 
             # Fetch Spark application data
-            history_data = spark_api.fetch_all_data(application_id, attempt_id_param)
+            history_data = metrics_service.fetch_all_data(application_id, attempt_id_param)
+            st.write(f"Data fetched for application ID: {application_id} and attempt ID: {attempt_id_param}")
+
+          
+
+            row2a, row2b = st.columns(2)
+            row1a, row1b, row1c, row1d = st.columns(4)
+            
+
+            row1a.metric("Memory", "30%", -1,border=True)
+            row1b.metric("CPU Usage", "45%", -1, border=True)
+            row1c.metric("Data Skew", "Low",1, border=True)
+            row1d.metric("Task Skew", "High", -1, border=True)
+
+            row2a.metric("App Duration", f"{metrics_service.get_application_duration()} sec", border=True)
+            row2b.metric("Total Cores",  f"{metrics_service.get_total_cores()} cores", border=True)
+
+            #st.subheader(f"{T['summary']}")
+            #st.write(df_summary)
+
             for heuristic in heuristics : 
                 if edited_df.loc[edited_df["heuristic"] == heuristic.__name__, "enabled"].values[0]:
                     recommendations = heuristic.evaluate(history_data)
@@ -136,11 +160,14 @@ def configuration_tab(T):
     st.write(f"Current API endpoint: `{API_ENDPOINT}`")
     # Add more configuration fields as needed
 
-def run_ui():
-    LANG = st.sidebar.selectbox("Language / Langue", options=["English", "Français"], index=0)
-    T = i18n[LANG]
 
-    history_server_endpoint = st.sidebar.text_input(T["history_server_endpoint"], value=API_ENDPOINT)
+    
+
+def run_ui(): 
+
+    LANG = st.sidebar.selectbox("Language / Langue", options=["English", "Français"], index=0)
+
+    T = i18n[LANG]  # Récupérer la traduction
 
     tabs = st.tabs(["Home", "Configuration"])
     with tabs[0]:
