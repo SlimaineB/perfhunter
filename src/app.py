@@ -1,5 +1,5 @@
 import streamlit as st
-from ui.controller import run_ui
+from ui.main_page import run_ui
 
 
 if __name__ == "__main__":
