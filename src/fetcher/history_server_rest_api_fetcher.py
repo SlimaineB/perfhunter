@@ -4,14 +4,12 @@ class HistoryServerRestApiFetcher:
     def __init__(self, base_url):
         self.base_url = base_url
 
-
     def fetch_app_data(self, app_id, attempt_id=None):
         url = f"{self.base_url}/api/v1/applications/{app_id}"
         if attempt_id:
             url += f"/{attempt_id}"
         response = requests.get(url)
         return self.parse_response(response)
-
 
 
     def fetch_job_data(self, app_id, attempt_id=None):
@@ -26,8 +24,18 @@ class HistoryServerRestApiFetcher:
         url = f"{self.base_url}/api/v1/applications/{app_id}"
         if attempt_id:
             url += f"/{attempt_id}"
-        url += "/stages"
+        url += "/stages?details=true"
         response = requests.get(url)
+        return self.parse_response(response)
+
+    def fetch_tasks_data_by_stage(self, app_id, attempt_id=None, stage_id=None):
+        url = f"{self.base_url}/api/v1/applications/{app_id}"
+        if attempt_id:
+            url += f"/{attempt_id}"
+        url += f"/stages/{stage_id}"
+        response = requests.get(url)
+        print(f"URL: {url}")
+
         return self.parse_response(response)
 
     def fetch_executor_data(self, app_id, attempt_id=None):

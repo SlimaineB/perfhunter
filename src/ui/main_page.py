@@ -68,7 +68,7 @@ def home_tab(T):
 
     # Manual override fields
     application_id = st.sidebar.text_input(T["manual_app_id"], value=selected_app_id if selected_app_id else "")
-    attempt_id = st.sidebar.text_input(T["manual_attempt_id"], value="")
+    attempt_id = st.sidebar.text_input(T["manual_attempt_id"], value=selected_attempt_id if selected_attempt_id else "")
 
 
     # Load available heuristics
