@@ -3,9 +3,10 @@ from pyspark.sql import SparkSession
 
 # ⚡ Initialiser Spark
 spark = SparkSession.builder \
-    .appName("Memory Intensive Job") \
+    .appName("Memory Intensive Job - 512m") \
     .config("spark.eventLog.enabled", "true") \
     .config("spark.eventLog.dir", "file:/tmp/spark-events") \
+    .config("spark.executor.memory", "512m") \
     .getOrCreate()
 
     #.config("spark.executor.memory", "4g") \

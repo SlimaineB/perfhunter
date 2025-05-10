@@ -94,7 +94,6 @@ class MetricsService:
                     stage_id = stage.get("stageId")
                     #print(stage_with_tasks[0])
                     tasks = stage.get("tasks", [])
-                    print("Stage  :", stage_id)
                     max_time = max(
                         (task.get("duration", 0) for key, task in tasks.items() if task.get("duration") is not None),
                         default=0
@@ -124,6 +123,19 @@ class MetricsService:
             print("Used On Heap memory:", used_memory)
             return used_memory / total_memory if total_memory > 0 else None
         return None
+
+    # Ratio of the executor that consume the most of heap memory
+    def get_max_ratio_on_heap_memory(self):
+        """ Récupère le ratio de la mémoire utilisée par rapport à la mémoire totale. """
+        if self.history_data:
+            executor_data = self.history_data.get("executors", [])
+            total_memory = max(int(ex.get("memoryMetrics", {}).get("totalOnHeapStorageMemory", 0)) for ex in executor_data if ex.get("id") != "driver" and ex.get("memoryMetrics", {}))
+            used_memory = max(int(ex.get("peakMemoryMetrics", {}).get("JVMHeapMemory", 0)) for ex in executor_data if ex.get("id") != "driver" and ex.get("peakMemoryMetrics", {}))
+            print("Total On Heap memory:", total_memory)
+            print("Used On Heap memory:", used_memory)
+            return used_memory / total_memory if total_memory > 0 else None
+        return None
+
 
     def get_configured_heap_memory(self):
         """ Récupère la mémoire totale configurée pour l'application, en octets. """
@@ -158,7 +170,6 @@ class MetricsService:
         if self.history_data:
             executor_data = self.history_data.get("executors", [])
             total_memory = sum(int(ex.get("maxMemory",0)) for ex in executor_data  if ex.get("id") != "driver" and ex.get("maxMemory",0))
-            print("Total Available Memory (Storage + Executor)  :", total_memory)
             return total_memory 
         return None
 
@@ -169,7 +180,6 @@ class MetricsService:
         total_memory = self.get_total_available_spark_memory()
         if total_memory:
             storage_memory = total_memory * storageFraction
-            print("Total Available Storage Memory  :", storage_memory)
             return storage_memory
         return None
 
@@ -180,7 +190,6 @@ class MetricsService:
         total_memory = self.get_total_available_spark_memory()
         if total_memory:
             execution_memory = total_memory * (1 - storageFraction)
-            print("Total Available Execution Memory  :", execution_memory)
             return execution_memory
         return None
 
@@ -189,7 +198,6 @@ class MetricsService:
         executor_data = self.history_data.get("executors", [])
         if executor_data:
             num_executors = len(executor_data) - 1 # Exclure le driver
-            print("Number of Executors  :", num_executors)
             return num_executors
         return None
     
@@ -203,16 +211,18 @@ if __name__ == "__main__":
     #print("Applications:", applications)
     
     # Récupération des données d'une application spécifique
-    #app_id = "app-20250508211358-0001"
-    app_id = "app-20250508204032-0000"
+    #app_id = "app-20250508211358-0001" # 1g
+    app_id = "app-20250508204032-0000" # 4g
+    #app_id = "app-20250510193216-0002" # 512m
     attempt_id = None
     history_data = metrics_service.fetch_all_data(app_id, attempt_id)
     
     # Affichage de la mémoire utilisée
     print("Max task time per stage", metrics_service.get_max_task_time_per_stage())
-    print("Ctritical path duration", metrics_service.get_critical_path_duration_in_sec())
+    print("Critical path duration", metrics_service.get_critical_path_duration_in_sec())
     
     print("Ratio on heap memory:", metrics_service.get_ratio_on_heap_memory())
+    print("Max ratio on heap memory:", metrics_service.get_max_ratio_on_heap_memory())
     print("Ratio off heap memory:", metrics_service.get_ratio_off_heap_memory())
     print("Configured heap memory per executor:", metrics_service.get_configured_heap_memory())
     print("Configured user memory per executor:", metrics_service.get_configured_user_memory())

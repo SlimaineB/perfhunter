@@ -109,12 +109,12 @@ def home_tab(T):
           
             row1a, row1b, row1c, row1d = st.columns(4)
             
-            row2a, row2b, row2c = st.columns(3)
+            row2a, row2b, row2c, row2d = st.columns(4)
 
-            row1a.metric("Memory", "30%", -1,border=True)
-            row1b.metric("CPU Usage", "45%", -1, border=True)
-            row1c.metric("Data Skew", "Low",1, border=True)
-            row1d.metric("Task Skew", "High", -1, border=True)
+            row1a.metric("App Duration", f"{metrics_service.get_application_duration()} sec", border=True)
+            row1b.metric("Total Cores",  f"{metrics_service.get_total_cores()} cores", border=True)
+            row1c.metric("Configured Executor Heap Size", f"{metrics_service.get_configured_heap_memory()/1024/1024} MB", border=True)
+            row1d.metric("Configured Spark Memory", f"{round(metrics_service.get_total_available_spark_memory()/1024/1024,2)} MB", border=True)
 
             #row2a.metric("App Duration", f"{metrics_service.get_application_duration()} sec", border=True)
             #row2b.metric("Min Duration with Infinite resources", f"{metrics_service.get_critical_path_duration_in_sec()} sec", border=True)
@@ -122,13 +122,13 @@ def home_tab(T):
 
             # 🔵 Ajouter du CSS pour styliser le cadre
             with row2a:
-                dynamic_metric( row2a, "💾 Memory Usage", 30, threshold=50)  # 🔴 Rouge si < 50%
-
+                dynamic_metric( row2a, "💾 Mean Heap Usage", value= int(metrics_service.get_ratio_on_heap_memory()*100), low_threshold=50, high_threshold=80)  # 🔴 Rouge si < 50%
             with row2b:
-                dynamic_metric( row2b, "⚙️ CPU Usage", 75, threshold=50)  # 🟢 Vert si ≥ 50%
-
+                dynamic_metric( row2b, "💾 Max Heap Usage", value= int(metrics_service.get_max_ratio_on_heap_memory()*100), low_threshold=50, high_threshold=80)  # 🔴 Rouge si < 50%            
             with row2c:
-                dynamic_metric(row2c, "📊 Disk Space", 40, threshold=50)  # 🔴 Rouge si < 50%
+                dynamic_metric( row2c, "⚙️ CPU Usage", 75, low_threshold=50, high_threshold=80)  # 🟢 Vert si ≥ 50%
+            with row2d:
+                dynamic_metric(row2d, "📊 Disk Space", 40, low_threshold=50, high_threshold=80)  # 🔴 Rouge si < 50%
 
             #st.subheader(f"{T['summary']}")
             #st.write(df_summary)
@@ -171,8 +171,8 @@ def home_tab(T):
 
 
 #  Fonction pour afficher la métrique avec couleur dynamique
-def dynamic_metric(container, label, value, threshold, low_color="#e74c3c", high_color="#2ecc71"):
-    color = low_color if value < threshold else high_color
+def dynamic_metric(container, label, value, low_threshold, high_threshold, low_color="yellow", high_color="red", nomal_color="green"):
+    color = low_color if value <= low_threshold else high_color if value >= high_threshold else nomal_color
     container.markdown(f"""
         <div style="
             border: 3px solid {color};
