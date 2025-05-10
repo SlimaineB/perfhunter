@@ -18,7 +18,8 @@ def get_metrics_service():
 
 
 def home_tab(T):
-    st.title(T["title"])
+
+
 
     metrics_service = get_metrics_service()
 
@@ -118,21 +119,18 @@ def home_tab(T):
             row1d.metric("Configured Executor Heap Size", f"{metrics_service.get_configured_heap_memory()/1024/1024} MB", border=True)
             row1e.metric("Configured Spark Memory", f"{round(metrics_service.get_total_available_spark_memory()/1024/1024,2)} MB", border=True)
 
-            #row2a.metric("App Duration", f"{metrics_service.get_application_duration()} sec", border=True)
-            #row2b.metric("Min Duration with Infinite resources", f"{metrics_service.get_critical_path_duration_in_sec()} sec", border=True)
-            #row2c.metric("Total Cores",  f"{metrics_service.get_total_cores()} cores", border=True)
+    
 
             # 🔵 Ajouter du CSS pour styliser le cadre
             with row2a:
-                dynamic_metric( row2a, "💾 Mean Heap Usage", value= round(metrics_service.get_ratio_on_heap_memory()*100,2), low_threshold=50, high_threshold=80)  # 🔴 Rouge si < 50%
+                dynamic_metric( row2a, "💾 Mean Heap Usage", value= round(metrics_service.get_ratio_on_heap_memory()*100,2), low_threshold=50, high_threshold=80) 
             with row2b:
-                dynamic_metric( row2b, "💾 Max Heap Usage", value= round(metrics_service.get_max_ratio_on_heap_memory()*100,2), low_threshold=50, high_threshold=80)  # 🔴 Rouge si < 50%            
-            with row2c:
-                dynamic_metric( row2c, "⚙️ CPU Usage", 75, low_threshold=50, high_threshold=80)  # 🟢 Vert si ≥ 50%
+                dynamic_metric( row2b, "💾 Max Heap Usage", value= round(metrics_service.get_max_ratio_on_heap_memory()*100,2), low_threshold=50, high_threshold=80)  
+                dynamic_metric( row2c, "⚙️ CPU Usage", 75, low_threshold=50, high_threshold=80) 
             with row2d:
-                dynamic_metric(row2d, "📊 Disk Space", 40, low_threshold=50, high_threshold=80)  # 🔴 Rouge si < 50%
+                dynamic_metric(row2d, "📊 Disk Space", 40, low_threshold=50, high_threshold=80) 
             with row2d:
-                dynamic_metric(row2e, "📊 Failed Task", 94, low_threshold=0, high_threshold=1, unit="")  # 🔴 Rouge si < 50%
+                dynamic_metric(row2e, "📊 Failed Task", 94, low_threshold=0, high_threshold=1, unit="") 
 
             #st.subheader(f"{T['summary']}")
             #st.write(df_summary)
@@ -179,11 +177,11 @@ def dynamic_metric(container, label, value, low_threshold, high_threshold,
                    low_color="#f1c40f", high_color="#e74c3c", normal_color="#2ecc71", unit="%"):
     """ Affichage dynamique de la métrique avec couleur variable et indicateur de tendance """
     if value <= low_threshold:
-        color, symbol = low_color, "🔻"   # 🟡 Trop bas, flèche vers le bas
+        color, symbol = low_color, "🔻" 
     elif value >= high_threshold:
-        color, symbol = high_color, "🔺"  # 🔴 Trop haut, flèche vers le haut
+        color, symbol = high_color, "🔺"  
     else:
-        color, symbol = normal_color, "✅"  # 🟢 OK, check vert
+        color, symbol = normal_color, "✅"  
 
     container.markdown(f"""
         <div style="
@@ -216,6 +214,19 @@ def run_ui():
     LANG = st.sidebar.selectbox("Language / Langue", options=["English", "Français"], index=0)
 
     T = i18n[LANG]  # Récupérer la traduction
+
+    import streamlit.components.v1 as components
+
+    st.markdown("""
+        <div style="
+            background-color: #2C3E50; 
+            padding: 10px; 
+            border-radius: 10px; 
+            text-align: center;
+        ">
+            <h1 style="color: white;">🔥 Spark Perf Hunter 🚀</h1>
+        </div>
+    """, unsafe_allow_html=True)
 
     tabs = st.tabs(["Home", "Configuration"])
     with tabs[0]:
