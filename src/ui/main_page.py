@@ -6,6 +6,8 @@ from service.heuristic_service import HeuristicsService
 from config.settings import API_ENDPOINT
 from config.i18n import i18n
 
+import streamlit.components.v1 as components
+
 #Page size to all available
 st.set_page_config(page_title="PerfHunter", page_icon=":bar_chart:", layout="wide")
 
@@ -105,18 +107,28 @@ def home_tab(T):
             st.write(f"Data fetched for application ID: {application_id} and attempt ID: {attempt_id_param}")
 
           
-
-            row2a, row2b = st.columns(2)
             row1a, row1b, row1c, row1d = st.columns(4)
             
+            row2a, row2b, row2c = st.columns(3)
 
             row1a.metric("Memory", "30%", -1,border=True)
             row1b.metric("CPU Usage", "45%", -1, border=True)
             row1c.metric("Data Skew", "Low",1, border=True)
             row1d.metric("Task Skew", "High", -1, border=True)
 
-            row2a.metric("App Duration", f"{metrics_service.get_application_duration()} sec", border=True)
-            row2b.metric("Total Cores",  f"{metrics_service.get_total_cores()} cores", border=True)
+            #row2a.metric("App Duration", f"{metrics_service.get_application_duration()} sec", border=True)
+            #row2b.metric("Min Duration with Infinite resources", f"{metrics_service.get_critical_path_duration_in_sec()} sec", border=True)
+            #row2c.metric("Total Cores",  f"{metrics_service.get_total_cores()} cores", border=True)
+
+            # 🔵 Ajouter du CSS pour styliser le cadre
+            with row2a:
+                dynamic_metric( row2a, "💾 Memory Usage", 30, threshold=50)  # 🔴 Rouge si < 50%
+
+            with row2b:
+                dynamic_metric( row2b, "⚙️ CPU Usage", 75, threshold=50)  # 🟢 Vert si ≥ 50%
+
+            with row2c:
+                dynamic_metric(row2c, "📊 Disk Space", 40, threshold=50)  # 🔴 Rouge si < 50%
 
             #st.subheader(f"{T['summary']}")
             #st.write(df_summary)
@@ -153,6 +165,27 @@ def home_tab(T):
             st.json(history_data.get("config", []))
         else:
             st.warning(T["app_id_warning"])
+
+
+
+
+
+#  Fonction pour afficher la métrique avec couleur dynamique
+def dynamic_metric(container, label, value, threshold, low_color="#e74c3c", high_color="#2ecc71"):
+    color = low_color if value < threshold else high_color
+    container.markdown(f"""
+        <div style="
+            border: 3px solid {color};
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 20px;
+            width: 100% !important;  /* 🟢 Prend toute la largeur */
+            text-align: center;
+        ">
+            <strong>{label}</strong>: {value}%
+        </div>
+    """, unsafe_allow_html=True)
+
 
 def configuration_tab(T):
     st.title("Configuration")

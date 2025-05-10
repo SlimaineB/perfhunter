@@ -10,4 +10,5 @@ THRESHOLDS = {
     "task_duration_ms": 10000,
     "shuffle_wait_time_ms": 5000,
     "remote_vs_local_ratio": 2,
+    "driver_time_ms": 2000,
 }

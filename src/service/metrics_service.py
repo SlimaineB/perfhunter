@@ -2,6 +2,7 @@ import requests
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from config.config import THRESHOLDS
 from fetcher.history_server_rest_api_fetcher import HistoryServerRestApiFetcher
 
 class MetricsService:
@@ -74,15 +75,11 @@ class MetricsService:
                     return attempt.get("attemptId")
         return None    
 
-    def get_critical_path_duration(self):
+    def get_critical_path_duration_in_sec(self):
         """ Récupère la durée totale de l'application en secondes pour le chemin critique. """
-        if self.history_data:
-            app_data = self.history_data.get("app", {})
-            return sum(
-                int(attempt.get("duration", 0) / 1000) for attempt in app_data.get("attempts", [])
-                if attempt.get("duration") and attempt.get("completed") is True
-            )
-        return None
+        max_taskduration_per_stage =   self.get_max_task_time_per_stage()
+        return (THRESHOLDS.get("driver_time_ms") + sum (value for key,  value in max_taskduration_per_stage.items()))/1000 if max_taskduration_per_stage else None
+
     
     def get_max_task_time_per_stage(self):
         """ Parcourt les tâches de chaque stage et trouve le temps maximum. """
@@ -97,15 +94,38 @@ class MetricsService:
                     stage_id = stage.get("stageId")
                     #print(stage_with_tasks[0])
                     tasks = stage.get("tasks", [])
-                    print("Tasks:", tasks)
+                    print("Stage  :", stage_id)
                     max_time = max(
-                        (task.get("duration", 0) for task in tasks if task.get("duration") is not None),
+                        (task.get("duration", 0) for key, task in tasks.items() if task.get("duration") is not None),
                         default=0
                     )
                     max_task_times[stage_id] = max_time
             return max_task_times
         return None     
-    
+
+    def get_ratio_off_heap_memory(self):
+        """ Récupère le ratio de la mémoire utilisée par rapport à la mémoire totale. """
+        if self.history_data:
+            executor_data = self.history_data.get("executors", [])
+            total_memory = sum(int(ex.get("memoryMetrics", {}).get("totalOffHeapStorageMemory", 0)) for ex in executor_data  if ex.get("id") != "driver" and ex.get("memoryMetrics", {}))
+            used_memory = sum(int(ex.get("peakMemoryMetrics", {}).get("JVMOffHeapMemory", 0)) for ex in executor_data  if ex.get("id") != "driver" and ex.get("peakMemoryMetrics", {}))
+            print("Total Off Heap memory:", total_memory)
+            print("Used Off Heap memory:", used_memory)
+            return used_memory / total_memory if total_memory > 0 else None
+        return None
+
+    def get_ratio_on_heap_memory(self):
+        """ Récupère le ratio de la mémoire utilisée par rapport à la mémoire totale. """
+        if self.history_data:
+            executor_data = self.history_data.get("executors", [])
+            total_memory = sum(int(ex.get("memoryMetrics", {}).get("totalOnHeapStorageMemory", 0)) for ex in executor_data if ex.get("id") != "driver" and ex.get("memoryMetrics", {}))
+            used_memory = sum(int(ex.get("peakMemoryMetrics", {}).get("JVMHeapMemory", 0)) for ex in executor_data if ex.get("id") != "driver" and ex.get("peakMemoryMetrics", {}))
+            print("Total On Heap memory:", total_memory)
+            print("Used On Heap memory:", used_memory)
+            return used_memory / total_memory if total_memory > 0 else None
+        return None
+
+
 if __name__ == "__main__":
     # Exemple d'utilisation
     base_url = "http://localhost:18080"
@@ -117,9 +137,13 @@ if __name__ == "__main__":
     
     # Récupération des données d'une application spécifique
     app_id = "app-20250508211358-0001"
+    #app_id = "app-20250508204032-0000"
     attempt_id = None
     history_data = metrics_service.fetch_all_data(app_id, attempt_id)
     
     # Affichage de la mémoire utilisée
-    memory_used = metrics_service.get_max_task_time_per_stage()
-    print("Mémoire utilisée:", memory_used)
+    print("Max task time per stage", metrics_service.get_max_task_time_per_stage())
+    print("Ctritical path duration", metrics_service.get_critical_path_duration_in_sec())
+    
+    print("Ratio on heap memory:", metrics_service.get_ratio_on_heap_memory())
+    print("Ratio off heap memory:", metrics_service.get_ratio_off_heap_memory())
