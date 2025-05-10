@@ -125,7 +125,63 @@ class MetricsService:
             return used_memory / total_memory if total_memory > 0 else None
         return None
 
+    def get_configured_heap_memory(self):
+        """ Récupère la mémoire totale configurée pour l'application, en octets. """
+        if self.history_data:
+            config_data = self.history_data.get("config", {})
+            heap_memory = config_data.get("spark.executor.memory", "1g")
 
+            # Extraction du nombre et du suffixe
+            size_units = {"k": 1024, "m": 1024**2, "g": 1024**3, "t": 1024**4}
+            for unit, factor in size_units.items():
+                if heap_memory.lower().endswith(unit):
+                    numeric_value = heap_memory[:-1]  # Supprime le suffixe
+                    if numeric_value.isdigit():  # Vérifie que c'est bien un nombre
+                        return int(numeric_value) * factor  # Convertit en octets
+
+        return 0  # Retourne 0 si aucune valeur valide trouvée
+
+    # Storage + Execution = (Configured Heap -300Mb ) * spark.memory.fraction (default 0.6)
+    def get_total_available_spark_memory(self):
+        """ Récupère la mémoire totale  disponible : Storage +  Execution = (Configured Heap -300Mb )* 0.6 """
+        if self.history_data:
+            executor_data = self.history_data.get("executors", [])
+            total_memory = sum(int(ex.get("maxMemory",0)) for ex in executor_data  if ex.get("id") != "driver" and ex.get("maxMemory",0))
+            print("Total Available Memory (Storage + Executor)  :", total_memory)
+            return total_memory 
+        return None
+
+    def get_total_available_storage_memory(self):
+        """ Récupère la mémoire totale  disponible : Storage +  Execution = (Configured Heap -300Mb )* 0.6 """
+        config_data = self.history_data.get("config", {})
+        storageFraction = config_data.get("spark.memory.storageFraction", 0.5) # TODO: Replace 0.5 with value from documentation of the current spark version
+        total_memory = self.get_total_available_spark_memory()
+        if total_memory:
+            storage_memory = total_memory * storageFraction
+            print("Total Available Storage Memory  :", storage_memory)
+            return storage_memory
+        return None
+
+    def get_total_available_execution_memory(self):
+        """ Récupère la mémoire totale  disponible : Storage +  Execution = (Configured Heap -300Mb )* 0.6 """
+        config_data = self.history_data.get("config", {})
+        storageFraction = config_data.get("spark.memory.storageFraction", 0.5) # TODO: Replace 0.5 with value from documentation of the current spark version
+        total_memory = self.get_total_available_spark_memory()
+        if total_memory:
+            execution_memory = total_memory * (1 - storageFraction)
+            print("Total Available Execution Memory  :", execution_memory)
+            return execution_memory
+        return None
+
+    def get_num_of_executors(self):
+        """ Récupère la mémoire totale  disponible : Storage +  Execution = (Configured Heap -300Mb )* 0.6 """
+        executor_data = self.history_data.get("executors", [])
+        if executor_data:
+            num_executors = len(executor_data) - 1 # Exclure le driver
+            print("Number of Executors  :", num_executors)
+            return num_executors
+        return None
+    
 if __name__ == "__main__":
     # Exemple d'utilisation
     base_url = "http://localhost:18080"
@@ -136,8 +192,8 @@ if __name__ == "__main__":
     #print("Applications:", applications)
     
     # Récupération des données d'une application spécifique
-    app_id = "app-20250508211358-0001"
-    #app_id = "app-20250508204032-0000"
+    #app_id = "app-20250508211358-0001"
+    app_id = "app-20250508204032-0000"
     attempt_id = None
     history_data = metrics_service.fetch_all_data(app_id, attempt_id)
     
@@ -147,3 +203,8 @@ if __name__ == "__main__":
     
     print("Ratio on heap memory:", metrics_service.get_ratio_on_heap_memory())
     print("Ratio off heap memory:", metrics_service.get_ratio_off_heap_memory())
+    print("Configured heap memory per executor:", metrics_service.get_configured_heap_memory())
+    print( "Total available Spark memory (all executors):", metrics_service.get_total_available_spark_memory())
+    print( "Total available Storage memory (all executors):", metrics_service.get_total_available_storage_memory())
+    print( "Total available Execution memory (all executors):", metrics_service.get_total_available_execution_memory())
+    print( "Total Num executors:", metrics_service.get_num_of_executors())
