@@ -9,7 +9,7 @@ from config.i18n import i18n
 import streamlit.components.v1 as components
 
 #Page size to all available
-st.set_page_config(page_title="PerfHunter", page_icon=":bar_chart:", layout="wide")
+
 
 # Initialize Spark API service once for the session
 #@st.cache_resource
@@ -84,6 +84,7 @@ def home_tab(T):
     # Toggle to filter out "None" criticity rows    
     show_only_issues = st.sidebar.checkbox("Show only detected issues", value=True)
     
+    debug_mode = st.sidebar.checkbox(T["debug_mode"], value=False)
 
     # Generate recommendations on button click
     if st.sidebar.button(T["generate"]):
@@ -107,14 +108,15 @@ def home_tab(T):
             st.write(f"Data fetched for application ID: {application_id} and attempt ID: {attempt_id_param}")
 
           
-            row1a, row1b, row1c, row1d = st.columns(4)
+            row1a, row1b, row1c, row1d, row1e = st.columns(5)
             
-            row2a, row2b, row2c, row2d = st.columns(4)
+            row2a, row2b, row2c, row2d, row2e = st.columns(5)
 
             row1a.metric("App Duration", f"{metrics_service.get_application_duration()} sec", border=True)
-            row1b.metric("Total Cores",  f"{metrics_service.get_total_cores()} cores", border=True)
-            row1c.metric("Configured Executor Heap Size", f"{metrics_service.get_configured_heap_memory()/1024/1024} MB", border=True)
-            row1d.metric("Configured Spark Memory", f"{round(metrics_service.get_total_available_spark_memory()/1024/1024,2)} MB", border=True)
+            row1b.metric("Num Executors",  f"{metrics_service.get_num_of_executors()}", border=True)
+            row1c.metric("Total Cores",  f"{metrics_service.get_total_cores()} cores", border=True)
+            row1d.metric("Configured Executor Heap Size", f"{metrics_service.get_configured_heap_memory()/1024/1024} MB", border=True)
+            row1e.metric("Configured Spark Memory", f"{round(metrics_service.get_total_available_spark_memory()/1024/1024,2)} MB", border=True)
 
             #row2a.metric("App Duration", f"{metrics_service.get_application_duration()} sec", border=True)
             #row2b.metric("Min Duration with Infinite resources", f"{metrics_service.get_critical_path_duration_in_sec()} sec", border=True)
@@ -122,13 +124,15 @@ def home_tab(T):
 
             # 🔵 Ajouter du CSS pour styliser le cadre
             with row2a:
-                dynamic_metric( row2a, "💾 Mean Heap Usage", value= int(metrics_service.get_ratio_on_heap_memory()*100), low_threshold=50, high_threshold=80)  # 🔴 Rouge si < 50%
+                dynamic_metric( row2a, "💾 Mean Heap Usage", value= round(metrics_service.get_ratio_on_heap_memory()*100,2), low_threshold=50, high_threshold=80)  # 🔴 Rouge si < 50%
             with row2b:
-                dynamic_metric( row2b, "💾 Max Heap Usage", value= int(metrics_service.get_max_ratio_on_heap_memory()*100), low_threshold=50, high_threshold=80)  # 🔴 Rouge si < 50%            
+                dynamic_metric( row2b, "💾 Max Heap Usage", value= round(metrics_service.get_max_ratio_on_heap_memory()*100,2), low_threshold=50, high_threshold=80)  # 🔴 Rouge si < 50%            
             with row2c:
                 dynamic_metric( row2c, "⚙️ CPU Usage", 75, low_threshold=50, high_threshold=80)  # 🟢 Vert si ≥ 50%
             with row2d:
                 dynamic_metric(row2d, "📊 Disk Space", 40, low_threshold=50, high_threshold=80)  # 🔴 Rouge si < 50%
+            with row2d:
+                dynamic_metric(row2e, "📊 Failed Task", 94, low_threshold=0, high_threshold=1, unit="")  # 🔴 Rouge si < 50%
 
             #st.subheader(f"{T['summary']}")
             #st.write(df_summary)
@@ -155,14 +159,15 @@ def home_tab(T):
 
 
             # Debug sections
-            st.subheader(T["debug_job"])
-            st.json(history_data.get("jobs", []))
-            st.subheader(T["debug_stage"])
-            st.json(history_data.get("stages", []))
-            st.subheader(T["debug_executor"])
-            st.json(history_data.get("executors", []))
-            st.subheader(T["debug_config"])
-            st.json(history_data.get("config", []))
+            if debug_mode :
+                st.subheader(T["debug_job"])
+                st.json(history_data.get("jobs", []))
+                st.subheader(T["debug_stage"])
+                st.json(history_data.get("stages", []))
+                st.subheader(T["debug_executor"])
+                st.json(history_data.get("executors", []))
+                st.subheader(T["debug_config"])
+                st.json(history_data.get("config", []))
         else:
             st.warning(T["app_id_warning"])
 
@@ -170,21 +175,31 @@ def home_tab(T):
 
 
 
-#  Fonction pour afficher la métrique avec couleur dynamique
-def dynamic_metric(container, label, value, low_threshold, high_threshold, low_color="yellow", high_color="red", nomal_color="green"):
-    color = low_color if value <= low_threshold else high_color if value >= high_threshold else nomal_color
+def dynamic_metric(container, label, value, low_threshold, high_threshold,
+                   low_color="#f1c40f", high_color="#e74c3c", normal_color="#2ecc71", unit="%"):
+    """ Affichage dynamique de la métrique avec couleur variable et indicateur de tendance """
+    if value <= low_threshold:
+        color, symbol = low_color, "🔻"   # 🟡 Trop bas, flèche vers le bas
+    elif value >= high_threshold:
+        color, symbol = high_color, "🔺"  # 🔴 Trop haut, flèche vers le haut
+    else:
+        color, symbol = normal_color, "✅"  # 🟢 OK, check vert
+
     container.markdown(f"""
         <div style="
             border: 3px solid {color};
             padding: 10px;
             border-radius: 10px;
             font-size: 20px;
-            width: 100% !important;  /* 🟢 Prend toute la largeur */
+            color: {color};
+            width: 100%;
             text-align: center;
         ">
-            <strong>{label}</strong>: {value}%
+            {label}: {symbol} <strong>{value}</strong>{unit}
         </div>
     """, unsafe_allow_html=True)
+
+
 
 
 def configuration_tab(T):

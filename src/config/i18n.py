@@ -28,6 +28,8 @@ i18n = {
         "history_server_endpoint": "History Server Endpoint",
         "heuristics_select": "Select Heuristics to apply",
         "summary": "Summary Informations",
+        "debug_mode": "Show debug data",
+
     },
     "Français": {
         "title": "PerfHunter - Analyseur de jobs Spark",
@@ -58,5 +60,6 @@ i18n = {
         "history_server_endpoint": "History Server Endpoint",
         "heuristics_select": "Selectionnez les Heuristiques à appliquer",
         "summary": "Résumé du jobs",
+        "debug_mode": "Voir le retour des données de debug",
     }
 }
