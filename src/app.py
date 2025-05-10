@@ -1,8 +1,23 @@
 import streamlit as st
-from ui.main_page import run_ui
+from config.i18n import i18n
+from pages.home import home_tab
+from pages.configuration import configuration_tab
 
+st.set_page_config(layout="wide")
 
-st.set_page_config(page_title="Spark Perf Hunter", page_icon="🚀", layout="wide")
+# Sélection de la langue
+LANG = st.sidebar.selectbox("Language / Langue", options=["English", "Français"], index=0)
+T = i18n[LANG]  
 
-if __name__ == "__main__":
-    run_ui()
+st.markdown("""
+    <div style="background-color: #2C3E50; padding: 10px; border-radius: 10px; text-align: center;">
+        <h1 style="color: white;">🔥 Spark Perf Hunter 🚀</h1>
+    </div>
+""", unsafe_allow_html=True)
+
+# Création des onglets
+tabs = st.tabs([T["home_tab"], T["config_tab"]])
+with tabs[0]:
+    home_tab(T)
+with tabs[1]:
+    configuration_tab(T)

@@ -1,6 +1,8 @@
 i18n = {
     "English": {
         "title": "PerfHunter - Spark Job Analyzer",
+        "home_tab": "Home",
+        "config_tab": "Configurations",
         "search_expander": "🔍 Search for a Spark application",
         "filter_label": "Filter Spark applications by date and status:",
         "filter_heuristics_expander": "🔍 Filter Heuristics",
@@ -33,6 +35,8 @@ i18n = {
     },
     "Français": {
         "title": "PerfHunter - Analyseur de jobs Spark",
+        "home_tab": "Home",
+        "config_tab": "Configuration",
         "search_expander": "🔍 Rechercher une application Spark",
         "filter_label": "Filtrer les applications Spark par date et statut :",
         "filter_heuristics_expander": "🔍 Filtrer les Heuristiques",
