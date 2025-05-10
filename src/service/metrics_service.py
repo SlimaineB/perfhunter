@@ -147,7 +147,8 @@ class MetricsService:
         if self.history_data:
             config_data = self.history_data.get("config", {})
             memory_fraction = config_data.get("spark.memory.fraction", 0.6)
-            return configured_heap_memory - 300*1024 * (1 - memory_fraction)
+            user_memory =  ((configured_heap_memory - 300*1024*1024) * (1 - memory_fraction))
+            return user_memory
         return None
 
 
