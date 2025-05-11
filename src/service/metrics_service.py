@@ -97,11 +97,23 @@ class MetricsService:
                     stage_id = stage.get("stageId")
                     #print(stage_with_tasks[0])
                     tasks = stage.get("tasks", [])
-                    max_time = max(
+                    max_duration_time = max(
                         (task.get("duration", 0) for key, task in tasks.items() if task.get("duration") is not None),
                         default=0
                     )
-                    max_task_times[stage_id] = max_time
+                    max_deserialize_time = max(
+                        (task.get("taskMetrics", {}).get("executorDeserializeTime",0) for key, task in tasks.items() if task.get("taskMetrics") is not None),
+                        default=0
+                    )
+                    max_serialize_time = max(
+                        (task.get("taskMetrics", {}).get("resultSerializationTime",0) for key, task in tasks.items() if task.get("taskMetrics") is not None),
+                        default=0
+                    ) 
+                    max_scheduler_time = max(
+                        (task.get("schedulerDelay", 0) for key, task in tasks.items() if task.get("duration") is not None),
+                        default=0
+                    )          
+                    max_task_times[stage_id] = max_duration_time +  max_deserialize_time + max_serialize_time + max_scheduler_time
             return max_task_times
         return None     
 
@@ -172,7 +184,7 @@ class MetricsService:
         """ Récupère la mémoire totale  disponible : Storage +  Execution = (Configured Heap - 300Mb )* 0.6 """
         if self.history_data:
             executor_data = self.history_data.get("executors", [])
-            total_memory = sum(int(ex.get("maxMemory",0)) for ex in executor_data  if ex.get("id") != "driver" and ex.get("maxMemory",0))
+            total_memory = sum(int(ex.get("maxMemory",0)) for ex in executor_data  if ex.get("id") != "driver" and ex.get("maxMemory",0))/self.get_num_of_executors()
             return total_memory 
         return None
 
@@ -267,7 +279,8 @@ if __name__ == "__main__":
     #app_id = "app-20250510193216-0002" # 512m
     #app_id = "app-20250511120435-0016" # 	MemoryAnalysisJob 4 core/3 instance/1g
     #app_id = "app-20250511114541-0007" # MemoryAnalysisJob 1 core/1 instance/1g
-    app_id = "app-20250511161708-0017" #MemoryAnalysisJob 20 cores/3 instance/2g
+    #app_id = "app-20250511161708-0017" #MemoryAnalysisJob 20 cores/3 instance/2g
+    app_id = "app-20250511195628-0025"
     attempt_id = None
     history_data = metrics_service.fetch_all_data(app_id, attempt_id)
     

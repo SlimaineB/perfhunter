@@ -70,7 +70,7 @@ def analytics_tab(T):
 
     # Manual override fields
     application_id = st.sidebar.text_input(T["manual_app_id"], value=selected_app_id if selected_app_id else "")
-    attempt_id = st.sidebar.text_input(T["manual_attempt_id"], value=selected_attempt_id if selected_attempt_id else "")
+    attempt_id = "" #st.sidebar.text_input(T["manual_attempt_id"], value=selected_attempt_id if selected_attempt_id else "")
 
 
     # Load available heuristics
@@ -108,29 +108,29 @@ def analytics_tab(T):
             st.write(f"Data fetched for application ID: {application_id} and attempt ID: {attempt_id_param}")
 
           
-            row1a, row1b, row1c, row1d, row1e = st.columns(5)
+            col1row1, col2row1, col3row1, col4row1, col5row1 = st.columns(5)
             
-            row2a, row2b, row2c, row2d, row2e = st.columns(5)
+            col1row2, col2row2, col3row2, col4row2, col5row2 = st.columns(5)
+            
+            col1row3, col2row3, col3row3, col4row3, col5row3 = st.columns(5)
+            
 
-            row1a.metric("App Duration", f"{metrics_service.get_application_duration()} sec", border=True)
-            row1b.metric("Num Executors",  f"{metrics_service.get_num_of_executors()}", border=True)
-            row1c.metric("Total Cores",  f"{metrics_service.get_total_cores()} cores", border=True)
-            row1d.metric("Configured Executor Heap Size", f"{metrics_service.get_configured_heap_memory()/1024/1024} MB", border=True)
-            row1e.metric("Configured Spark Memory", f"{round(metrics_service.get_total_available_spark_memory()/1024/1024,2)} MB", border=True)
+            col1row1.metric("App Duration", f"{metrics_service.get_application_duration()} sec", border=True)
+            col2row1.metric("Num Executors",  f"{metrics_service.get_num_of_executors()}", border=True)
+            col3row1.metric("Total Cores",  f"{metrics_service.get_total_cores()} cores", border=True)
+            col4row1.metric("Configured Executor Heap Size", f"{metrics_service.get_configured_heap_memory()/1024/1024} MB", border=True)
+            col5row1.metric("Configured Spark Memory", f"{round(metrics_service.get_total_available_spark_memory()/1024/1024,2)} MB", border=True)
 
+
+            col1row2.metric("Critical Path Duration", f"{round(metrics_service.get_critical_path_duration_in_sec(),2)} sec", border=True)
     
 
             # 🔵 Ajouter du CSS pour styliser le cadre
-            with row2a:
-                dynamic_metric( row2a, "💾 Mean Heap Usage", value= round(metrics_service.get_ratio_on_heap_memory()*100,2), low_threshold=50, high_threshold=80) 
-            with row2b:
-                dynamic_metric( row2b, "💾 Max Heap Usage", value= round(metrics_service.get_max_ratio_on_heap_memory()*100,2), low_threshold=50, high_threshold=80)  
-            with row2c:                
-                dynamic_metric( row2c, "⚙️ CPU Usage", metrics_service.get_ratio_cpu_vs_total_time()*100, low_threshold=50, high_threshold=80) 
-            with row2d:
-                dynamic_metric(row2d, "📊 Disk Space", 40, low_threshold=50, high_threshold=80) 
-            with row2e:
-                dynamic_metric(row2e, "📊 Failed Task", 94, low_threshold=0, high_threshold=1, unit="") 
+            dynamic_metric( col1row3, "💾 Mean Heap Usage", value= round(metrics_service.get_ratio_on_heap_memory()*100,2), low_threshold=50, high_threshold=80) 
+            dynamic_metric( col2row3, "💾 Max Heap Usage", value= round(metrics_service.get_max_ratio_on_heap_memory()*100,2), low_threshold=50, high_threshold=80)  
+            dynamic_metric( col3row3, "⚙️ CPU Usage", metrics_service.get_ratio_cpu_vs_total_time()*100, low_threshold=50, high_threshold=80) 
+            dynamic_metric(col4row3, "📊 Disk Space", 40, low_threshold=50, high_threshold=80) 
+            dynamic_metric(col5row3, "📊 Failed Task", 94, low_threshold=0, high_threshold=1, unit="") 
 
             #st.subheader(f"{T['summary']}")
             #st.write(df_summary)

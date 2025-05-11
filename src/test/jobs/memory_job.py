@@ -1,5 +1,6 @@
 from pyspark.sql import SparkSession
 
+data = [(i % 10000, i * 1.5) for i in range(10_000_000)]
 
 # ⚡ Initialiser Spark
 spark = SparkSession.builder \
@@ -13,7 +14,7 @@ spark = SparkSession.builder \
     #.config("spark.driver.memory", "4g")\
 
 # 🔥 Générer un grand DataFrame artificiel (10M lignes)
-data = [(i % 10000, i * 1.5) for i in range(10_000_000)]
+
 df = spark.createDataFrame(data, ["id", "value"])
 
 # 🔄 Opération lourde sur la mémoire : `groupBy()` + `agg()`
