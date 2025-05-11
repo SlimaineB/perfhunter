@@ -7,7 +7,7 @@ class Criticity(Enum):
     LOW = "Low"
     MEDIUM = "Medium"
     HIGH = "High"
-    CRTITICAL = "Critical"
+    CRITICAL = "Critical"
     SEVERE = "Severe"
     MODERATE = "Moderate"
     NONE = "None"
