@@ -128,7 +128,7 @@ def analytics_tab(T):
             # 🔵 Ajouter du CSS pour styliser le cadre
             dynamic_metric( col1row3, "💾 Mean Heap Usage", value= round(metrics_service.get_ratio_on_heap_memory()*100,2), low_threshold=50, high_threshold=80) 
             dynamic_metric( col2row3, "💾 Max Heap Usage", value= round(metrics_service.get_max_ratio_on_heap_memory()*100,2), low_threshold=50, high_threshold=80)  
-            dynamic_metric( col3row3, "⚙️ CPU Usage", metrics_service.get_ratio_cpu_vs_total_time()*100, low_threshold=50, high_threshold=80) 
+            dynamic_metric( col3row3, "⚙️ CPU Usage", round(metrics_service.get_ratio_cpu_vs_total_time()*100,2), low_threshold=50, high_threshold=80) 
             dynamic_metric(col4row3, "📊 Disk Space", 40, low_threshold=50, high_threshold=80) 
             dynamic_metric(col5row3, "📊 Failed Task", 94, low_threshold=0, high_threshold=1, unit="") 
 
