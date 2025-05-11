@@ -1,9 +1,12 @@
 import requests
 import sys
 import os
+from datetime import datetime
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from config.config import THRESHOLDS
 from fetcher.history_server_rest_api_fetcher import HistoryServerRestApiFetcher
+
+DATE_FMT = "%Y-%m-%dT%H:%M:%S.%f"
 
 class MetricsService:
     def __init__(self, base_url):
@@ -200,7 +203,55 @@ class MetricsService:
             num_executors = len(executor_data) - 1 # Exclure le driver
             return num_executors
         return None
-    
+
+    def get_ratio_cpu_vs_total_time_per_stage(self):
+        """  """
+        ratios  = {}
+        if self.history_data:
+            stage_data = self.history_data.get("stages", [])
+            for stage in stage_data:
+                if stage.get("status") == "COMPLETE":
+                    total_cpu_time = int(stage.get("executorCpuTime", 0) + stage.get("executorDeserializeCpuTime", 0))
+                    total_runtime = int(stage.get("executorRunTime", 0) + stage.get("executorDeserializeTime", 0))*1024*1024
+                    print("Total CPU time:", total_cpu_time)
+                    print("Total Runtime:", total_runtime)
+                    ratio_cpu_vs_total = total_cpu_time / total_runtime if total_runtime > 0 else None
+                    ratios[stage.get("stageId")] = ratio_cpu_vs_total
+            return ratios
+        return None 
+
+    def get_ratio_cpu_vs_total_time(self):
+        """ Ratio CPU time  vs total time relative to the stage duration """
+        duration_per_stage = self.get_duration_per_stage()
+        cpu_vs_total_per_stage  = self.get_ratio_cpu_vs_total_time_per_stage()
+        sum_duration_per_stage = sum(duration_per_stage.values())
+        ratio =  0
+
+        for stage_id, cpu_vs_total in cpu_vs_total_per_stage.items():
+            if stage_id in duration_per_stage:
+                duration = duration_per_stage[stage_id]
+                ratio = ratio + (cpu_vs_total * duration / sum_duration_per_stage) if duration > 0 else None
+        return ratio 
+
+
+    def get_duration_per_stage(self):
+        """ Duration per stage"""
+        durations  = {}
+        if self.history_data:
+            stage_data = self.history_data.get("stages", [])
+            
+            for stage in stage_data:
+                if stage.get("status") == "COMPLETE":
+
+                    submission_dt_ms = datetime.strptime(stage.get("submissionTime").replace("GMT", ""), DATE_FMT)
+                    completion_dt_ms = datetime.strptime(stage.get("completionTime").replace("GMT", ""), DATE_FMT)
+                    stage_duration = completion_dt_ms - submission_dt_ms
+                    stage_duration = stage_duration.total_seconds() * 1000  # Convertir en millisecondes
+                    print("Stage Duration:", stage_duration)
+                    durations[stage.get("stageId")] = stage_duration 
+            return durations
+        return None 
+
 if __name__ == "__main__":
     # Exemple d'utilisation
     base_url = "http://localhost:18080"
@@ -212,8 +263,11 @@ if __name__ == "__main__":
     
     # Récupération des données d'une application spécifique
     #app_id = "app-20250508211358-0001" # 1g
-    app_id = "app-20250508204032-0000" # 4g
+    #app_id = "app-20250508204032-0000" # 4g
     #app_id = "app-20250510193216-0002" # 512m
+    #app_id = "app-20250511120435-0016" # 	MemoryAnalysisJob 4 core/3 instance/1g
+    #app_id = "app-20250511114541-0007" # MemoryAnalysisJob 1 core/1 instance/1g
+    app_id = "app-20250511161708-0017" #MemoryAnalysisJob 20 cores/3 instance/2g
     attempt_id = None
     history_data = metrics_service.fetch_all_data(app_id, attempt_id)
     
@@ -230,3 +284,6 @@ if __name__ == "__main__":
     print( "Total available Storage memory (all executors):", metrics_service.get_total_available_storage_memory())
     print( "Total available Execution memory (all executors):", metrics_service.get_total_available_execution_memory())
     print( "Total Num executors:", metrics_service.get_num_of_executors())
+    print( "Ratio CPU/Total per stage", metrics_service.get_ratio_cpu_vs_total_time_per_stage())
+    print( "Duration per stage", metrics_service.get_duration_per_stage())
+    print( "Prorated Ratio CPU/Total", metrics_service.get_ratio_cpu_vs_total_time())

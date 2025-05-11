@@ -125,10 +125,11 @@ def analytics_tab(T):
                 dynamic_metric( row2a, "💾 Mean Heap Usage", value= round(metrics_service.get_ratio_on_heap_memory()*100,2), low_threshold=50, high_threshold=80) 
             with row2b:
                 dynamic_metric( row2b, "💾 Max Heap Usage", value= round(metrics_service.get_max_ratio_on_heap_memory()*100,2), low_threshold=50, high_threshold=80)  
-                dynamic_metric( row2c, "⚙️ CPU Usage", 75, low_threshold=50, high_threshold=80) 
+            with row2c:                
+                dynamic_metric( row2c, "⚙️ CPU Usage", metrics_service.get_ratio_cpu_vs_total_time()*100, low_threshold=50, high_threshold=80) 
             with row2d:
                 dynamic_metric(row2d, "📊 Disk Space", 40, low_threshold=50, high_threshold=80) 
-            with row2d:
+            with row2e:
                 dynamic_metric(row2e, "📊 Failed Task", 94, low_threshold=0, high_threshold=1, unit="") 
 
             #st.subheader(f"{T['summary']}")
