@@ -6,8 +6,8 @@ class HistoryServerRestApiFetcher:
 
     def fetch_app_data(self, app_id, attempt_id=None):
         url = f"{self.base_url}/api/v1/applications/{app_id}"
-        if attempt_id:
-            url += f"/{attempt_id}"
+        #if attempt_id:
+        #    url += f"/{attempt_id}"
         response = requests.get(url)
         return self.parse_response(response)
 
