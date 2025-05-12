@@ -60,9 +60,7 @@ def analytics_tab(T):
             selected_app_id = selected_app.split(" - ")[0]
             app_obj = next(app for app in applications if app["id"] == selected_app_id)
             attempts = app_obj.get("attempts", [])
-            attempt_options = [
-                f"{i+1}: {a['startTime']} ({T['attempt_duration']}: {a['duration']} ms)" for i, a in enumerate(attempts)
-            ]
+            attempt_options = [f"{a.get('attempId',0)} : {a.get('startTime')}" for a in attempts]
             selected_attempt = st.selectbox(T["select_attempt"], attempt_options)
             if selected_attempt:
                 idx = int(selected_attempt.split(":")[0]) - 1
@@ -70,7 +68,7 @@ def analytics_tab(T):
 
     # Manual override fields
     application_id = st.sidebar.text_input(T["manual_app_id"], value=selected_app_id if selected_app_id else "")
-    attempt_id = "" #st.sidebar.text_input(T["manual_attempt_id"], value=selected_attempt_id if selected_attempt_id else "")
+    attempt_id = st.sidebar.text_input(T["manual_attempt_id"], value=selected_attempt_id if selected_attempt_id else "")
 
 
     # Load available heuristics
